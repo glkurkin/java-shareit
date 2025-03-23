@@ -21,8 +21,8 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public ItemDto addItem(Long userId, ItemDto itemDto) {
-        if (!users.containsKey(userId)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Пользователь не найден");
+        if (userId == null || !users.containsKey(userId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Некорректный пользователь");
         }
         if (itemDto.getName() == null || itemDto.getName().isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Название не может быть пустым");
@@ -31,7 +31,7 @@ public class ItemServiceImpl implements ItemService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Описание не может быть пустым");
         }
         if (itemDto.getAvailable() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Статус доступности обязателен");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Поле 'available' обязательно");
         }
 
         Item item = new Item();
@@ -84,7 +84,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public List<ItemDto> searchItems(String text) {
-        if (text.isBlank()) return new ArrayList<>();
+        if (text == null || text.isBlank()) return new ArrayList<>();
 
         return items.values().stream()
                 .filter(item -> item.getAvailable() &&
