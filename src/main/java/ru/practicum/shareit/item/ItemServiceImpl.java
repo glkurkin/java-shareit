@@ -15,9 +15,14 @@ import java.util.stream.Collectors;
 
 @Service
 public class ItemServiceImpl implements ItemService {
+    
     private final Map<Long, Item> items = new HashMap<>();
     private final Map<Long, User> users = new HashMap<>();
     private long itemIdCounter = 1;
+
+    public ItemServiceImpl() {
+        users.put(1L, new User(1L, "Test User", "test@example.com"));
+    }
 
     @Override
     public ItemDto addItem(Long userId, ItemDto itemDto) {
@@ -25,11 +30,7 @@ public class ItemServiceImpl implements ItemService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "X-Sharer-User-Id отсутствует");
         }
         if (!users.containsKey(userId)) {
-            if (userId.equals(1L)) {
-                users.put(1L, new User(1L, "Test User", "test@example.com"));
-            } else {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Пользователь не найден");
-            }
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Пользователь не найден");
         }
         if (itemDto.getName() == null || itemDto.getName().isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Название не может быть пустым");
@@ -38,7 +39,7 @@ public class ItemServiceImpl implements ItemService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Описание не может быть пустым");
         }
         if (itemDto.getAvailable() == null) {
-            itemDto.setAvailable(false);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Поле 'available' обязательно");
         }
 
         Item item = new Item();
