@@ -30,7 +30,6 @@ public class ItemServiceImpl implements ItemService {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Некорректный пользователь");
             }
         }
-        
         if (itemDto.getName() == null || itemDto.getName().isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Название не может быть пустым");
         }
