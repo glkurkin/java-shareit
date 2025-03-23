@@ -15,7 +15,6 @@ import java.util.stream.Collectors;
 
 @Service
 public class ItemServiceImpl implements ItemService {
-    
     private final Map<Long, Item> items = new HashMap<>();
     private final Map<Long, User> users = new HashMap<>();
     private long itemIdCounter = 1;
