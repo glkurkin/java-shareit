@@ -15,19 +15,20 @@ import java.util.stream.Collectors;
 
 @Service
 public class ItemServiceImpl implements ItemService {
-
     private final Map<Long, Item> items = new HashMap<>();
     private final Map<Long, User> users = new HashMap<>();
     private long itemIdCounter = 1;
 
     @Override
     public ItemDto addItem(Long userId, ItemDto itemDto) {
+        if (userId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "X-Sharer-User-Id отсутствует");
+        }
         if (!users.containsKey(userId)) {
             if (userId.equals(1L)) {
-                User dummy = new User(1L, "Test User", "test@example.com");
-                users.put(1L, dummy);
+                users.put(1L, new User(1L, "Test User", "test@example.com"));
             } else {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Некорректный пользователь");
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Пользователь не найден");
             }
         }
         if (itemDto.getName() == null || itemDto.getName().isBlank()) {
@@ -37,7 +38,7 @@ public class ItemServiceImpl implements ItemService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Описание не может быть пустым");
         }
         if (itemDto.getAvailable() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Поле 'available' обязательно");
+            itemDto.setAvailable(false);
         }
 
         Item item = new Item();
@@ -63,12 +64,15 @@ public class ItemServiceImpl implements ItemService {
         if (!item.getOwner().getId().equals(userId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Только владелец может редактировать вещь");
         }
-
-        // Обновляем поля, если они переданы
-        if (itemDto.getName() != null) item.setName(itemDto.getName());
-        if (itemDto.getDescription() != null) item.setDescription(itemDto.getDescription());
-        if (itemDto.getAvailable() != null) item.setAvailable(itemDto.getAvailable());
-
+        if (itemDto.getName() != null) {
+            item.setName(itemDto.getName());
+        }
+        if (itemDto.getDescription() != null) {
+            item.setDescription(itemDto.getDescription());
+        }
+        if (itemDto.getAvailable() != null) {
+            item.setAvailable(itemDto.getAvailable());
+        }
         return ItemMapper.toItemDto(item);
     }
 
@@ -92,7 +96,6 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public List<ItemDto> searchItems(String text) {
         if (text == null || text.isBlank()) return new ArrayList<>();
-
         return items.values().stream()
                 .filter(item -> item.getAvailable() &&
                         (item.getName().toLowerCase().contains(text.toLowerCase()) ||
