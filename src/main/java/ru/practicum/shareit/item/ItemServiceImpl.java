@@ -1,5 +1,7 @@
 package ru.practicum.shareit.item;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.model.Item;
@@ -20,16 +22,16 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public ItemDto addItem(Long userId, ItemDto itemDto) {
         if (!users.containsKey(userId)) {
-            throw new IllegalArgumentException("Пользователь не найден");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Пользователь не найден");
         }
         if (itemDto.getName() == null || itemDto.getName().isBlank()) {
-            throw new IllegalArgumentException("Название не может быть пустым");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Название не может быть пустым");
         }
         if (itemDto.getDescription() == null || itemDto.getDescription().isBlank()) {
-            throw new IllegalArgumentException("Описание не может быть пустым");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Описание не может быть пустым");
         }
         if (itemDto.getAvailable() == null) {
-            throw new IllegalArgumentException("Статус доступности обязателен");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Статус доступности обязателен");
         }
 
         Item item = new Item();
@@ -45,12 +47,15 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public ItemDto updateItem(Long userId, Long itemId, ItemDto itemDto) {
+        if (userId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Не передан X-Sharer-User-Id");
+        }
         Item item = items.get(itemId);
         if (item == null) {
-            throw new IllegalArgumentException("Вещь не найдена");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Вещь не найдена");
         }
         if (!item.getOwner().getId().equals(userId)) {
-            throw new IllegalArgumentException("Только владелец может редактировать вещь");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Только владелец может редактировать вещь");
         }
 
         if (itemDto.getName() != null) item.setName(itemDto.getName());
@@ -64,7 +69,7 @@ public class ItemServiceImpl implements ItemService {
     public ItemDto getItemById(Long itemId) {
         Item item = items.get(itemId);
         if (item == null) {
-            throw new IllegalArgumentException("Вещь не найдена");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Вещь не найдена");
         }
         return ItemMapper.toItemDto(item);
     }
