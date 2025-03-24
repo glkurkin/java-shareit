@@ -1,35 +1,25 @@
 package ru.practicum.shareit.item;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.model.Item;
-import ru.practicum.shareit.user.User;
+import ru.practicum.shareit.repository.InMemoryRepository;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
 public class ItemServiceImpl implements ItemService {
-    private final Map<Long, Item> items = new HashMap<>();
-    private final Map<Long, User> users = new HashMap<>();
-    private long itemIdCounter = 1;
-
-    public ItemServiceImpl() {
-        users.put(1L, new User(1L, "Test User", "test@example.com"));
-    }
-
     @Override
     public ItemDto addItem(Long userId, ItemDto itemDto) {
         if (userId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "X-Sharer-User-Id отсутствует");
         }
-        if (!users.containsKey(userId)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Пользователь не найден");
+        if (!InMemoryRepository.users.containsKey(userId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Пользователь не найден");
         }
         if (itemDto.getName() == null || itemDto.getName().isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Название не может быть пустым");
@@ -42,13 +32,13 @@ public class ItemServiceImpl implements ItemService {
         }
 
         Item item = new Item();
-        item.setId(itemIdCounter++);
+        item.setId(InMemoryRepository.itemIdCounter++);
         item.setName(itemDto.getName());
         item.setDescription(itemDto.getDescription());
         item.setAvailable(itemDto.getAvailable());
-        item.setOwner(users.get(userId));
+        item.setOwner(InMemoryRepository.users.get(userId));
 
-        items.put(item.getId(), item);
+        InMemoryRepository.items.put(item.getId(), item);
         return ItemMapper.toItemDto(item);
     }
 
@@ -57,7 +47,7 @@ public class ItemServiceImpl implements ItemService {
         if (userId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Не передан X-Sharer-User-Id");
         }
-        Item item = items.get(itemId);
+        Item item = InMemoryRepository.items.get(itemId);
         if (item == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Вещь не найдена");
         }
@@ -78,7 +68,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public ItemDto getItemById(Long itemId) {
-        Item item = items.get(itemId);
+        Item item = InMemoryRepository.items.get(itemId);
         if (item == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Вещь не найдена");
         }
@@ -87,7 +77,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public List<ItemDto> getUserItems(Long userId) {
-        return items.values().stream()
+        return InMemoryRepository.items.values().stream()
                 .filter(item -> item.getOwner().getId().equals(userId))
                 .map(ItemMapper::toItemDto)
                 .collect(Collectors.toList());
@@ -96,7 +86,7 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public List<ItemDto> searchItems(String text) {
         if (text == null || text.isBlank()) return new ArrayList<>();
-        return items.values().stream()
+        return InMemoryRepository.items.values().stream()
                 .filter(item -> item.getAvailable() &&
                         (item.getName().toLowerCase().contains(text.toLowerCase()) ||
                                 item.getDescription().toLowerCase().contains(text.toLowerCase())))

@@ -1,76 +1,88 @@
 package ru.practicum.shareit.user;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+import ru.practicum.shareit.repository.InMemoryRepository;
 import ru.practicum.shareit.user.dto.UserDto;
 
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class UserServiceImpl implements UserService {
-    private final Map<Long, User> users = new HashMap<>();
-    private Long userIdCounter = 1L;
-    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@(.+)$");
+    private final ConcurrentHashMap<Long, User> localUsers = new ConcurrentHashMap<>();
+    private long userIdCounter = 1;
 
     @Override
     public UserDto createUser(UserDto userDto) {
-        if (userDto.getEmail() == null || !EMAIL_PATTERN.matcher(userDto.getEmail()).matches()) {
-            throw new IllegalArgumentException("Некорректный email");
+        if (userDto.getEmail() == null || userDto.getEmail().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email обязателен");
         }
-        if (users.values().stream().anyMatch(user -> user.getEmail().equals(userDto.getEmail()))) {
-            throw new IllegalArgumentException("Email уже используется");
+        if (!userDto.getEmail().contains("@")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Некорректный email");
         }
-
+        boolean exists = localUsers.values().stream()
+                .anyMatch(u -> u.getEmail().equalsIgnoreCase(userDto.getEmail()));
+        if (exists) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email уже используется");
+        }
         User user = new User();
         user.setId(userIdCounter++);
         user.setName(userDto.getName());
         user.setEmail(userDto.getEmail());
-
-        users.put(user.getId(), user);
+        localUsers.put(user.getId(), user);
+        InMemoryRepository.users.put(user.getId(), user);
         return UserMapper.toUserDto(user);
     }
 
     @Override
     public UserDto updateUser(Long userId, UserDto userDto) {
-        User user = users.get(userId);
+        User user = localUsers.get(userId);
         if (user == null) {
-            throw new IllegalArgumentException("Пользователь не найден");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Пользователь не найден");
         }
         if (userDto.getEmail() != null) {
-            if (!EMAIL_PATTERN.matcher(userDto.getEmail()).matches()) {
-                throw new IllegalArgumentException("Некорректный email");
+            if (!userDto.getEmail().contains("@")) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Некорректный email");
             }
-            if (users.values().stream().anyMatch(u -> !u.getId().equals(userId) && u.getEmail().equals(userDto.getEmail()))) {
-                throw new IllegalArgumentException("Email уже используется");
+            boolean exists = localUsers.values().stream()
+                    .anyMatch(u -> !u.getId().equals(userId) && u.getEmail().equalsIgnoreCase(userDto.getEmail()));
+            if (exists) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Email уже используется");
             }
             user.setEmail(userDto.getEmail());
         }
         if (userDto.getName() != null) {
             user.setName(userDto.getName());
         }
+        InMemoryRepository.users.put(user.getId(), user);
         return UserMapper.toUserDto(user);
     }
 
     @Override
     public UserDto getUserById(Long userId) {
-        User user = users.get(userId);
+        User user = localUsers.get(userId);
         if (user == null) {
-            throw new IllegalArgumentException("Пользователь не найден");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Пользователь не найден");
         }
         return UserMapper.toUserDto(user);
     }
 
     @Override
     public List<UserDto> getAllUsers() {
-        return users.values().stream().map(UserMapper::toUserDto).collect(Collectors.toList());
+        List<UserDto> list = new ArrayList<>();
+        for (User user : localUsers.values()) {
+            list.add(UserMapper.toUserDto(user));
+        }
+        return list;
     }
 
     @Override
     public void deleteUser(Long userId) {
-        users.remove(userId);
+        localUsers.remove(userId);
+        InMemoryRepository.users.remove(userId);
     }
 }
