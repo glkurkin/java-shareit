@@ -20,9 +20,12 @@ public class ItemServiceImpl implements ItemService {
         if (userId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "X-Sharer-User-Id отсутствует");
         }
-        if (!InMemoryRepository.users.containsKey(userId)) {
+
+        User owner = InMemoryRepository.getUser(userId);
+        if (owner == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Пользователь не найден");
         }
+
         if (itemDto.getName() == null || itemDto.getName().isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Название не может быть пустым");
         }
@@ -38,13 +41,10 @@ public class ItemServiceImpl implements ItemService {
         item.setName(itemDto.getName());
         item.setDescription(itemDto.getDescription());
         item.setAvailable(itemDto.getAvailable());
-        User owner = InMemoryRepository.users.get(userId);
-        if (owner == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Пользователь не найден");
-        }
         item.setOwner(owner);
 
-        InMemoryRepository.items.put(item.getId(), item);
+        InMemoryRepository.putItem(item);
+
         return ItemMapper.toItemDto(item);
     }
 
@@ -53,13 +53,16 @@ public class ItemServiceImpl implements ItemService {
         if (userId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Не передан X-Sharer-User-Id");
         }
-        Item item = InMemoryRepository.items.get(itemId);
+
+        Item item = InMemoryRepository.getItem(itemId);
         if (item == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Вещь не найдена");
         }
+
         if (item.getOwner() == null || !item.getOwner().getId().equals(userId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Только владелец может редактировать вещь");
         }
+
         if (itemDto.getName() != null) {
             item.setName(itemDto.getName());
         }
@@ -69,12 +72,15 @@ public class ItemServiceImpl implements ItemService {
         if (itemDto.getAvailable() != null) {
             item.setAvailable(itemDto.getAvailable());
         }
+
+        InMemoryRepository.putItem(item);
+
         return ItemMapper.toItemDto(item);
     }
 
     @Override
     public ItemDto getItemById(Long itemId) {
-        Item item = InMemoryRepository.items.get(itemId);
+        Item item = InMemoryRepository.getItem(itemId);
         if (item == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Вещь не найдена");
         }
@@ -83,7 +89,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public List<ItemDto> getUserItems(Long userId) {
-        return InMemoryRepository.items.values().stream()
+        return InMemoryRepository.getItems().values().stream()
                 .filter(item -> item.getOwner() != null && item.getOwner().getId().equals(userId))
                 .map(ItemMapper::toItemDto)
                 .collect(Collectors.toList());
@@ -91,11 +97,15 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public List<ItemDto> searchItems(String text) {
-        if (text == null || text.isBlank()) return new ArrayList<>();
-        return InMemoryRepository.items.values().stream()
-                .filter(item -> item.getAvailable() &&
-                        (item.getName().toLowerCase().contains(text.toLowerCase()) ||
-                                item.getDescription().toLowerCase().contains(text.toLowerCase())))
+        if (text == null || text.isBlank()) {
+            return new ArrayList<>();
+        }
+        String lower = text.toLowerCase();
+
+        return InMemoryRepository.getItems().values().stream()
+                .filter(item -> Boolean.TRUE.equals(item.getAvailable()) &&
+                        (item.getName().toLowerCase().contains(lower) ||
+                                item.getDescription().toLowerCase().contains(lower)))
                 .map(ItemMapper::toItemDto)
                 .collect(Collectors.toList());
     }
