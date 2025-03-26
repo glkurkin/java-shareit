@@ -28,7 +28,6 @@ public class InMemoryRepository {
     public static void removeUser(Long id) {
         USERS_INTERNAL.remove(id);
     }
-    
 
     public static Map<Long, Item> getItems() {
         return Collections.unmodifiableMap(ITEMS_INTERNAL);
