@@ -6,6 +6,7 @@ import org.springframework.web.server.ResponseStatusException;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.repository.InMemoryRepository;
+import ru.practicum.shareit.user.User;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,6 +14,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class ItemServiceImpl implements ItemService {
+
     @Override
     public ItemDto addItem(Long userId, ItemDto itemDto) {
         if (userId == null) {
@@ -36,7 +38,11 @@ public class ItemServiceImpl implements ItemService {
         item.setName(itemDto.getName());
         item.setDescription(itemDto.getDescription());
         item.setAvailable(itemDto.getAvailable());
-        item.setOwner(InMemoryRepository.users.get(userId));
+        User owner = InMemoryRepository.users.get(userId);
+        if (owner == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Пользователь не найден");
+        }
+        item.setOwner(owner);
 
         InMemoryRepository.items.put(item.getId(), item);
         return ItemMapper.toItemDto(item);
@@ -51,7 +57,7 @@ public class ItemServiceImpl implements ItemService {
         if (item == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Вещь не найдена");
         }
-        if (!item.getOwner().getId().equals(userId)) {
+        if (item.getOwner() == null || !item.getOwner().getId().equals(userId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Только владелец может редактировать вещь");
         }
         if (itemDto.getName() != null) {
@@ -78,7 +84,7 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public List<ItemDto> getUserItems(Long userId) {
         return InMemoryRepository.items.values().stream()
-                .filter(item -> item.getOwner().getId().equals(userId))
+                .filter(item -> item.getOwner() != null && item.getOwner().getId().equals(userId))
                 .map(ItemMapper::toItemDto)
                 .collect(Collectors.toList());
     }

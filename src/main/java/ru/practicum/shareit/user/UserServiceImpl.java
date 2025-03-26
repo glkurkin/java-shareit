@@ -3,27 +3,22 @@ package ru.practicum.shareit.user;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
-import ru.practicum.shareit.repository.InMemoryRepository;
 import ru.practicum.shareit.user.dto.UserDto;
+import ru.practicum.shareit.repository.InMemoryRepository;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 public class UserServiceImpl implements UserService {
-    private final ConcurrentHashMap<Long, User> localUsers = new ConcurrentHashMap<>();
+    private final Map<Long, User> localUsers = new HashMap<>();
     private long userIdCounter = 1;
 
     @Override
     public UserDto createUser(UserDto userDto) {
-        if (userDto.getEmail() == null || userDto.getEmail().isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email обязателен");
-        }
-        if (!userDto.getEmail().contains("@")) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Некорректный email");
-        }
+        validateEmail(userDto.getEmail());
         boolean exists = localUsers.values().stream()
                 .anyMatch(u -> u.getEmail().equalsIgnoreCase(userDto.getEmail()));
         if (exists) {
@@ -38,6 +33,15 @@ public class UserServiceImpl implements UserService {
         return UserMapper.toUserDto(user);
     }
 
+    private void validateEmail(String email) {
+        if (email == null || email.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email обязателен");
+        }
+        if (!email.contains("@")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Некорректный email");
+        }
+    }
+
     @Override
     public UserDto updateUser(Long userId, UserDto userDto) {
         User user = localUsers.get(userId);
@@ -45,9 +49,7 @@ public class UserServiceImpl implements UserService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Пользователь не найден");
         }
         if (userDto.getEmail() != null) {
-            if (!userDto.getEmail().contains("@")) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Некорректный email");
-            }
+            validateEmail(userDto.getEmail());
             boolean exists = localUsers.values().stream()
                     .anyMatch(u -> !u.getId().equals(userId) && u.getEmail().equalsIgnoreCase(userDto.getEmail()));
             if (exists) {
