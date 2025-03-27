@@ -1,7 +1,19 @@
 package ru.practicum.shareit.booking;
 
-import jakarta.persistence.*;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Column;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.EnumType;
+
 import java.time.LocalDateTime;
+
+
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.User;
 
@@ -30,16 +42,40 @@ public class Booking {
     @Column(nullable = false, length = 20)
     private BookingStatus status;
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-    public LocalDateTime getStart() { return start; }
-    public void setStart(LocalDateTime start) { this.start = start; }
-    public LocalDateTime getEnd() { return end; }
-    public void setEnd(LocalDateTime end) { this.end = end; }
-    public Item getItem() { return item; }
-    public void setItem(Item item) { this.item = item; }
-    public User getBooker() { return booker; }
-    public void setBooker(User booker) { this.booker = booker; }
-    public BookingStatus getStatus() { return status; }
-    public void setStatus(BookingStatus status) { this.status = status; }
+    public Long getId() {
+        return id;
+    }
+    public void setId(Long id) {
+        this.id = id;
+    }
+    public LocalDateTime getStart() {
+        return start;
+    }
+    public void setStart(LocalDateTime start) {
+        this.start = start;
+    }
+    public LocalDateTime getEnd() {
+        return end;
+    }
+    public void setEnd(LocalDateTime end) {
+        this.end = end;
+    }
+    public Item getItem() {
+        return item;
+    }
+    public void setItem(Item item) {
+        this.item = item;
+    }
+    public User getBooker() {
+        return booker;
+    }
+    public void setBooker(User booker) {
+        this.booker = booker;
+    }
+    public BookingStatus getStatus() {
+        return status;
+    }
+    public void setStatus(BookingStatus status) {
+        this.status = status;
+    }
 }
