@@ -68,7 +68,7 @@ public class Comment {
     public User getAuthor() {
         return author;
     }
-    
+
     public void setAuthor(User author) {
         this.author = author;
     }
