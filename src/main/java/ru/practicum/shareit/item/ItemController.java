@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.CommentDto;
+import ru.practicum.shareit.item.dto.ItemResponseDto;
+
 import java.util.List;
 
 @RestController
@@ -35,10 +37,12 @@ public class ItemController {
         return itemService.updateItem(userId, itemId, itemDto);
     }
 
+
     @GetMapping("/{itemId}")
-    public ItemDto getItem(@PathVariable Long itemId) {
+    public ItemResponseDto getItem(@PathVariable Long itemId) {
         return itemService.getItemById(itemId);
     }
+
 
     @GetMapping
     public List<ItemDto> getUserItems(@RequestHeader("X-Sharer-User-Id") Long userId) {

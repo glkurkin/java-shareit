@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.CommentDto;
+import ru.practicum.shareit.item.dto.ItemResponseDto;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.User;
 import ru.practicum.shareit.user.UserRepository;
@@ -68,10 +69,16 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    public ItemDto getItemById(Long itemId) {
+    public ItemResponseDto getItemById(Long itemId) {
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Вещь не найдена"));
-        return ItemMapper.toItemDto(item);
+
+        List<CommentDto> commentDtos = commentRepository.findByItemIdOrderByCreatedDesc(itemId)
+                .stream()
+                .map(CommentMapper::toCommentDto)
+                .collect(Collectors.toList());
+
+        return ItemMapper.toItemResponseDto(item, commentDtos);
     }
 
     @Override
@@ -85,7 +92,8 @@ public class ItemServiceImpl implements ItemService {
         if (text == null || text.isBlank()) {
             return new ArrayList<>();
         }
-        return itemRepository.searchAvailable(text);
+        List<Item> items = itemRepository.searchAvailable(text);
+        return items.stream().map(ItemMapper::toItemDto).collect(Collectors.toList());
     }
 
     @Override
