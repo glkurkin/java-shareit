@@ -17,7 +17,7 @@ public class ItemMapper {
                 item.getAvailable()
         );
     }
-    
+
     public static ItemResponseDto toItemResponseDto(Item item, List<CommentDto> comments) {
         return new ItemResponseDto(
                 item.getId(),
