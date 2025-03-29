@@ -1,38 +1,28 @@
 package ru.practicum.shareit.user;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
-import ru.practicum.shareit.repository.InMemoryRepository;
 import ru.practicum.shareit.user.dto.UserDto;
-
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Service
+@RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
-    private final Map<Long, User> localUsers = new HashMap<>();
-    private long userIdCounter = 1;
+    private final UserRepository userRepository;
 
     @Override
     public UserDto createUser(UserDto userDto) {
         validateEmail(userDto.getEmail());
-        boolean exists = localUsers.values().stream()
-                .anyMatch(u -> u.getEmail().equalsIgnoreCase(userDto.getEmail()));
-        if (exists) {
+        if (userRepository.existsByEmailIgnoreCase(userDto.getEmail())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email уже используется");
         }
-
         User user = new User();
-        user.setId(userIdCounter++);
         user.setName(userDto.getName());
         user.setEmail(userDto.getEmail());
-
-        localUsers.put(user.getId(), user);
-        InMemoryRepository.putUser(user);
-
+        user = userRepository.save(user);
         return UserMapper.toUserDto(user);
     }
 
@@ -47,16 +37,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDto updateUser(Long userId, UserDto userDto) {
-        User user = localUsers.get(userId);
-        if (user == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Пользователь не найден");
-        }
-
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Пользователь не найден"));
         if (userDto.getEmail() != null) {
             validateEmail(userDto.getEmail());
-            boolean exists = localUsers.values().stream()
-                    .anyMatch(u -> !u.getId().equals(userId) && u.getEmail().equalsIgnoreCase(userDto.getEmail()));
-            if (exists) {
+            if (userRepository.existsByEmailIgnoreCase(userDto.getEmail()) &&
+                    !user.getEmail().equalsIgnoreCase(userDto.getEmail())) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Email уже используется");
             }
             user.setEmail(userDto.getEmail());
@@ -64,26 +50,21 @@ public class UserServiceImpl implements UserService {
         if (userDto.getName() != null) {
             user.setName(userDto.getName());
         }
-
-        localUsers.put(user.getId(), user);
-        InMemoryRepository.putUser(user);
-
+        user = userRepository.save(user);
         return UserMapper.toUserDto(user);
     }
 
     @Override
     public UserDto getUserById(Long userId) {
-        User user = localUsers.get(userId);
-        if (user == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Пользователь не найден");
-        }
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Пользователь не найден"));
         return UserMapper.toUserDto(user);
     }
 
     @Override
     public List<UserDto> getAllUsers() {
         List<UserDto> list = new ArrayList<>();
-        for (User user : localUsers.values()) {
+        for (User user : userRepository.findAll()) {
             list.add(UserMapper.toUserDto(user));
         }
         return list;
@@ -91,7 +72,6 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void deleteUser(Long userId) {
-        localUsers.remove(userId);
-        InMemoryRepository.removeUser(userId);
+        userRepository.deleteById(userId);
     }
 }

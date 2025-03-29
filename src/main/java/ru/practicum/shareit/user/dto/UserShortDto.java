@@ -1,15 +1,13 @@
-package ru.practicum.shareit.item.dto;
+package ru.practicum.shareit.user.dto;
 
 import lombok.AllArgsConstructor;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Getter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ItemDto {
+public class UserShortDto {
     private Long id;
     private String name;
-    private String description;
-    private Boolean available;
 }

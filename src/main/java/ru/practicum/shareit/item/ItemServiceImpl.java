@@ -1,31 +1,30 @@
 package ru.practicum.shareit.item;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.item.dto.CommentDto;
+import ru.practicum.shareit.item.dto.ItemResponseDto;
 import ru.practicum.shareit.item.model.Item;
-import ru.practicum.shareit.repository.InMemoryRepository;
 import ru.practicum.shareit.user.User;
-
+import ru.practicum.shareit.user.UserRepository;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class ItemServiceImpl implements ItemService {
+    private final ItemRepository itemRepository;
+    private final UserRepository userRepository;
+    private final CommentRepository commentRepository;
 
     @Override
     public ItemDto addItem(Long userId, ItemDto itemDto) {
-        if (userId == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "X-Sharer-User-Id отсутствует");
-        }
-
-        User owner = InMemoryRepository.getUser(userId);
-        if (owner == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Пользователь не найден");
-        }
-
+        User owner = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Пользователь не найден"));
         if (itemDto.getName() == null || itemDto.getName().isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Название не может быть пустым");
         }
@@ -37,14 +36,12 @@ public class ItemServiceImpl implements ItemService {
         }
 
         Item item = new Item();
-        item.setId(InMemoryRepository.itemIdCounter++);
         item.setName(itemDto.getName());
         item.setDescription(itemDto.getDescription());
         item.setAvailable(itemDto.getAvailable());
         item.setOwner(owner);
 
-        InMemoryRepository.putItem(item);
-
+        item = itemRepository.save(item);
         return ItemMapper.toItemDto(item);
     }
 
@@ -53,16 +50,11 @@ public class ItemServiceImpl implements ItemService {
         if (userId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Не передан X-Sharer-User-Id");
         }
-
-        Item item = InMemoryRepository.getItem(itemId);
-        if (item == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Вещь не найдена");
-        }
-
+        Item item = itemRepository.findById(itemId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Вещь не найдена"));
         if (item.getOwner() == null || !item.getOwner().getId().equals(userId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Только владелец может редактировать вещь");
         }
-
         if (itemDto.getName() != null) {
             item.setName(itemDto.getName());
         }
@@ -72,27 +64,27 @@ public class ItemServiceImpl implements ItemService {
         if (itemDto.getAvailable() != null) {
             item.setAvailable(itemDto.getAvailable());
         }
-
-        InMemoryRepository.putItem(item);
-
+        item = itemRepository.save(item);
         return ItemMapper.toItemDto(item);
     }
 
     @Override
-    public ItemDto getItemById(Long itemId) {
-        Item item = InMemoryRepository.getItem(itemId);
-        if (item == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Вещь не найдена");
-        }
-        return ItemMapper.toItemDto(item);
+    public ItemResponseDto getItemById(Long itemId) {
+        Item item = itemRepository.findById(itemId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Вещь не найдена"));
+
+        List<CommentDto> commentDtos = commentRepository.findByItemIdOrderByCreatedDesc(itemId)
+                .stream()
+                .map(CommentMapper::toCommentDto)
+                .collect(Collectors.toList());
+
+        return ItemMapper.toItemResponseDto(item, commentDtos);
     }
 
     @Override
     public List<ItemDto> getUserItems(Long userId) {
-        return InMemoryRepository.getItems().values().stream()
-                .filter(item -> item.getOwner() != null && item.getOwner().getId().equals(userId))
-                .map(ItemMapper::toItemDto)
-                .collect(Collectors.toList());
+        List<Item> items = itemRepository.findByOwnerIdOrderByIdAsc(userId);
+        return items.stream().map(ItemMapper::toItemDto).collect(Collectors.toList());
     }
 
     @Override
@@ -100,13 +92,24 @@ public class ItemServiceImpl implements ItemService {
         if (text == null || text.isBlank()) {
             return new ArrayList<>();
         }
-        String lower = text.toLowerCase();
+        List<Item> items = itemRepository.searchAvailable(text);
+        return items.stream().map(ItemMapper::toItemDto).collect(Collectors.toList());
+    }
 
-        return InMemoryRepository.getItems().values().stream()
-                .filter(item -> Boolean.TRUE.equals(item.getAvailable()) &&
-                        (item.getName().toLowerCase().contains(lower) ||
-                                item.getDescription().toLowerCase().contains(lower)))
-                .map(ItemMapper::toItemDto)
-                .collect(Collectors.toList());
+    @Override
+    public CommentDto addComment(Long userId, Long itemId, CommentDto commentDto) {
+        User author = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Пользователь не найден"));
+        Item item = itemRepository.findById(itemId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Вещь не найдена"));
+
+        Comment comment = new Comment();
+        comment.setText(commentDto.getText());
+        comment.setCreated(java.time.LocalDateTime.now());
+        comment.setAuthor(author);
+        comment.setItem(item);
+
+        comment = commentRepository.save(comment);
+        return CommentMapper.toCommentDto(comment);
     }
 }

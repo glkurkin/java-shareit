@@ -5,12 +5,14 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import ru.practicum.shareit.booking.BookingStatus;
+import ru.practicum.shareit.item.dto.ItemShortDto;
+import ru.practicum.shareit.user.dto.UserShortDto;
 import java.time.LocalDateTime;
 
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-public class BookingDto {
+public class BookingResponseDto {
     private Long id;
 
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
@@ -20,6 +22,8 @@ public class BookingDto {
     private LocalDateTime end;
 
     private BookingStatus status;
-    private Long itemId;
-    private Long bookerId;
+
+    private UserShortDto booker;
+
+    private ItemShortDto item;
 }

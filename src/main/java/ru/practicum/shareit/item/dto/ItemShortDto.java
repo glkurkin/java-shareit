@@ -7,9 +7,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ItemDto {
+public class ItemShortDto {
     private Long id;
     private String name;
-    private String description;
-    private Boolean available;
 }
