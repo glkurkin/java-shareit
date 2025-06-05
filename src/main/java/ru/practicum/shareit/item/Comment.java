@@ -1,9 +1,7 @@
-package ru.practicum.shareit.booking;
+package ru.practicum.shareit.item;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -12,36 +10,32 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
-import ru.practicum.shareit.item.model.Item;
-import ru.practicum.shareit.user.User;
 
 import java.time.LocalDateTime;
+import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.user.User;
 
 @Getter
 @Setter
 @Entity
-@Table(name = "bookings")
-public class Booking {
+@Table(name = "comments")
+public class Comment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "start_time", nullable = false)
-    private LocalDateTime start;
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String text;
 
-    @Column(name = "end_time", nullable = false)
-    private LocalDateTime end;
-
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private BookingStatus status;
-
-    @ManyToOne
-    @JoinColumn(name = "booker_id", nullable = false)
-    private User booker;
+    private LocalDateTime created;
 
     @ManyToOne
     @JoinColumn(name = "item_id", nullable = false)
     private Item item;
+
+    @ManyToOne
+    @JoinColumn(name = "author_id", nullable = false)
+    private User author;
 }
