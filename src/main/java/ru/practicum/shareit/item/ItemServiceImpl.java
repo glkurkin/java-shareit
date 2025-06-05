@@ -105,10 +105,7 @@ public class ItemServiceImpl implements ItemService {
 
         BookingDto lastBooking = null;
         BookingDto nextBooking = null;
-        if (item.getOwnerId().equals(userId)) {
-        }
 
-        // Сбор комментариев
         List<CommentDto> comments = commentRepository.findByItemIdOrderByCreatedDesc(itemId)
                 .stream()
                 .map(CommentMapper::toCommentDto)
