@@ -10,8 +10,8 @@ import ru.practicum.shareit.booking.dto.BookingRequestDto;
 import ru.practicum.shareit.error.BadRequestException;
 import ru.practicum.shareit.error.ForbiddenException;
 import ru.practicum.shareit.error.NotFoundException;
-import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.ItemRepository;
+import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.User;
 import ru.practicum.shareit.user.UserRepository;
 
@@ -99,9 +99,15 @@ public class BookingServiceImpl implements BookingService {
         if (!userRepository.existsById(bookerId)) {
             throw new NotFoundException("Пользователь с id=" + bookerId + " не найден");
         }
+        if (size <= 0) {
+            throw new BadRequestException("size должен быть > 0");
+        }
+        if (from < 0) {
+            throw new BadRequestException("from не может быть < 0");
+        }
 
-        PageRequest page = PageRequest.of(from / size, size);
-        List<Booking> bookings = bookingRepository.findByBookerIdOrderByStartDesc(bookerId, page);
+        PageRequest pageRequest = PageRequest.of(from / size, size);
+        List<Booking> bookings = bookingRepository.findByBookerIdOrderByStartDesc(bookerId, pageRequest);
         return bookings.stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
@@ -112,9 +118,15 @@ public class BookingServiceImpl implements BookingService {
         if (!userRepository.existsById(ownerId)) {
             throw new NotFoundException("Пользователь с id=" + ownerId + " не найден");
         }
+        if (size <= 0) {
+            throw new BadRequestException("size должен быть > 0");
+        }
+        if (from < 0) {
+            throw new BadRequestException("from не может быть < 0");
+        }
 
-        PageRequest page = PageRequest.of(from / size, size);
-        List<Booking> bookings = bookingRepository.findByItemOwnerIdOrderByStartDesc(ownerId, page);
+        PageRequest pageRequest = PageRequest.of(from / size, size);
+        List<Booking> bookings = bookingRepository.findByItemOwnerIdOrderByStartDesc(ownerId, pageRequest);
         return bookings.stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());

@@ -17,8 +17,7 @@ import ru.practicum.shareit.user.User;
 import ru.practicum.shareit.user.UserRepository;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -106,8 +105,8 @@ public class ItemServiceImpl implements ItemService {
         BookingDto lastBooking = null;
         BookingDto nextBooking = null;
 
-        List<CommentDto> comments = commentRepository.findByItemIdOrderByCreatedDesc(itemId)
-                .stream()
+        List<Comment> commentsRaw = commentRepository.findByItemIdInOrderByCreatedDesc(Collections.singletonList(itemId));
+        List<CommentDto> comments = commentsRaw.stream()
                 .map(CommentMapper::toCommentDto)
                 .collect(Collectors.toList());
 
@@ -127,26 +126,39 @@ public class ItemServiceImpl implements ItemService {
         if (!userRepository.existsById(userId)) {
             throw new NotFoundException("Пользователь с id=" + userId + " не найден");
         }
-        List<Item> items = itemRepository.findByOwnerIdOrderById(userId, PageRequest.of(from / size, size));
-        return items.stream()
-                .map(item -> {
-                    BookingDto lastBooking = null;
-                    BookingDto nextBooking = null;
-                    List<CommentDto> comments = commentRepository.findByItemIdOrderByCreatedDesc(item.getId())
-                            .stream()
-                            .map(CommentMapper::toCommentDto)
-                            .collect(Collectors.toList());
-                    return ItemResponseDto.builder()
-                            .id(item.getId())
-                            .name(item.getName())
-                            .description(item.getDescription())
-                            .available(item.getAvailable())
-                            .lastBooking(lastBooking)
-                            .nextBooking(nextBooking)
-                            .comments(comments)
-                            .build();
-                })
+
+        PageRequest pageRequest = PageRequest.of(from / size, size);
+        List<Item> items = itemRepository.findByOwnerIdOrderById(userId, pageRequest);
+
+        List<Long> itemIds = items.stream()
+                .map(Item::getId)
                 .collect(Collectors.toList());
+
+        List<Comment> allComments = commentRepository.findByItemIdInOrderByCreatedDesc(itemIds);
+
+        Map<Long, List<CommentDto>> commentsByItemId = new HashMap<>();
+        for (Comment c : allComments) {
+            commentsByItemId
+                    .computeIfAbsent(c.getItem().getId(), __ -> new ArrayList<>())
+                    .add(CommentMapper.toCommentDto(c));
+        }
+
+        return items.stream().map(item -> {
+            BookingDto lastBooking = null;
+            BookingDto nextBooking = null;
+
+            List<CommentDto> commentsForThis = commentsByItemId.getOrDefault(item.getId(), Collections.emptyList());
+
+            return ItemResponseDto.builder()
+                    .id(item.getId())
+                    .name(item.getName())
+                    .description(item.getDescription())
+                    .available(item.getAvailable())
+                    .lastBooking(lastBooking)
+                    .nextBooking(nextBooking)
+                    .comments(commentsForThis)
+                    .build();
+        }).collect(Collectors.toList());
     }
 
     @Override
