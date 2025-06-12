@@ -35,6 +35,12 @@
                 <activeByDefault>false</activeByDefault>
             </activation>
         </profile>
+        <profile>
+            <id>coverage</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+        </profile>
     </profiles>
 
 </project>
