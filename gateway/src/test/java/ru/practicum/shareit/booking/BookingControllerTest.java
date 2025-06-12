@@ -3,11 +3,15 @@ package ru.practicum.shareit.booking;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.SpringBootConfiguration;
+import org.springframework.boot.autoconfigure.security.oauth2.client.servlet.OAuth2ClientAutoConfiguration;
+import org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import ru.practicum.shareit.booking.dto.BookingBookerDto;
 import ru.practicum.shareit.booking.dto.BookingDto;
@@ -26,13 +30,19 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@ActiveProfiles("test")
-@SpringBootTest(
-        classes = ru.practicum.shareit.ShareItGateway.class,
-        webEnvironment = SpringBootTest.WebEnvironment.MOCK
-)
-@AutoConfigureMockMvc
+@WebMvcTest(controllers = BookingController.class,
+        excludeAutoConfiguration = {
+                SecurityAutoConfiguration.class,
+                OAuth2ClientAutoConfiguration.class,
+                OAuth2ResourceServerAutoConfiguration.class
+        })
+@AutoConfigureMockMvc(addFilters = false)
 class BookingControllerTest {
+
+    @Import(BookingController.class)
+    @SpringBootConfiguration
+    static class TestConfig {
+    }
 
     @Autowired
     private MockMvc mvc;
@@ -59,9 +69,11 @@ class BookingControllerTest {
         BookingDto dto = sampleDto();
         when(bookingService.create(eq(3L), any(BookingRequestDto.class))).thenReturn(dto);
 
-        BookingRequestDto req = new BookingRequestDto(2L,
+        BookingRequestDto req = new BookingRequestDto(
+                2L,
                 LocalDateTime.now().plusDays(1),
-                LocalDateTime.now().plusDays(2));
+                LocalDateTime.now().plusDays(2)
+        );
 
         mvc.perform(post("/bookings")
                         .header("X-Sharer-User-Id", 3L)

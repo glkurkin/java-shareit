@@ -2,20 +2,24 @@ package ru.practicum.shareit.booking.dto;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.json.AutoConfigureJsonTesters;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.SpringBootConfiguration;
+import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
+import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
+import org.springframework.boot.test.autoconfigure.json.JsonTest;
 import org.springframework.boot.test.json.JacksonTester;
 import org.springframework.boot.test.json.JsonContent;
-import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@ActiveProfiles("test")
-@SpringBootTest(classes = ru.practicum.shareit.ShareItGateway.class)
-@AutoConfigureJsonTesters
+@JsonTest
+@ImportAutoConfiguration(JacksonAutoConfiguration.class)
 class BookingRequestDtoJsonTest {
+
+    @SpringBootConfiguration
+    static class TestConfig {
+    }
 
     @Autowired
     private JacksonTester<BookingRequestDto> json;
