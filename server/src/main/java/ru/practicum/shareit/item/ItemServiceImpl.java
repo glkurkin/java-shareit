@@ -13,11 +13,16 @@ import ru.practicum.shareit.item.dto.ItemRequestDto;
 import ru.practicum.shareit.item.dto.ItemResponseDto;
 import ru.practicum.shareit.item.dto.ItemUpdateDto;
 import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.request.ItemRequestRepository;
 import ru.practicum.shareit.user.User;
 import ru.practicum.shareit.user.UserRepository;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -27,6 +32,7 @@ public class ItemServiceImpl implements ItemService {
     private final UserRepository userRepository;
     private final BookingRepository bookingRepository;
     private final CommentRepository commentRepository;
+    private final ItemRequestRepository itemRequestRepository;  // добавлено
 
     @Override
     public ItemResponseDto create(Long userId, ItemRequestDto dto) {
@@ -46,6 +52,14 @@ public class ItemServiceImpl implements ItemService {
         item.setName(dto.getName().trim());
         item.setDescription(dto.getDescription().trim());
         item.setAvailable(dto.getAvailable());
+
+        if (dto.getRequestId() != null) {
+            var request = itemRequestRepository.findById(dto.getRequestId())
+                    .orElseThrow(() -> new NotFoundException(
+                            "Запрос с id=" + dto.getRequestId() + " не найден"));
+            item.setRequest(request);
+        }
+
         Item saved = itemRepository.save(item);
 
         return ItemResponseDto.builder()
@@ -105,8 +119,8 @@ public class ItemServiceImpl implements ItemService {
         BookingDto lastBooking = null;
         BookingDto nextBooking = null;
 
-        List<Comment> commentsRaw = commentRepository.findByItemIdInOrderByCreatedDesc(Collections.singletonList(itemId));
-        List<CommentDto> comments = commentsRaw.stream()
+        var commentsRaw = commentRepository.findByItemIdInOrderByCreatedDesc(List.of(itemId));
+        var comments = commentsRaw.stream()
                 .map(CommentMapper::toCommentDto)
                 .collect(Collectors.toList());
 
@@ -127,7 +141,7 @@ public class ItemServiceImpl implements ItemService {
             throw new NotFoundException("Пользователь с id=" + userId + " не найден");
         }
 
-        PageRequest pageRequest = PageRequest.of(from / size, size);
+        var pageRequest = PageRequest.of(from / size, size);
         List<Item> items = itemRepository.findByOwnerIdOrderById(userId, pageRequest);
 
         List<Long> itemIds = items.stream()
@@ -135,7 +149,6 @@ public class ItemServiceImpl implements ItemService {
                 .collect(Collectors.toList());
 
         List<Comment> allComments = commentRepository.findByItemIdInOrderByCreatedDesc(itemIds);
-
         Map<Long, List<CommentDto>> commentsByItemId = new HashMap<>();
         for (Comment c : allComments) {
             commentsByItemId
@@ -146,7 +159,6 @@ public class ItemServiceImpl implements ItemService {
         return items.stream().map(item -> {
             BookingDto lastBooking = null;
             BookingDto nextBooking = null;
-
             List<CommentDto> commentsForThis = commentsByItemId.getOrDefault(item.getId(), Collections.emptyList());
 
             return ItemResponseDto.builder()
@@ -184,11 +196,11 @@ public class ItemServiceImpl implements ItemService {
     public CommentDto addComment(Long userId, Long itemId, CommentDto commentDto) {
         User author = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id=" + userId + " не найден"));
-
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new NotFoundException("Вещь с id=" + itemId + " не найдена"));
 
-        boolean hasPastBooking = bookingRepository.findByBookerIdOrderByStartDesc(userId, PageRequest.of(0, Integer.MAX_VALUE))
+        boolean hasPastBooking = bookingRepository.findByBookerIdOrderByStartDesc(
+                        userId, PageRequest.of(0, Integer.MAX_VALUE))
                 .stream()
                 .anyMatch(b -> b.getItem().getId().equals(itemId)
                         && b.getStatus() == BookingStatus.APPROVED
