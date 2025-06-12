@@ -46,7 +46,6 @@ class ItemServiceIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        // чистим БД
         itemRepository.deleteAll();
         itemRequestRepository.deleteAll();
         userRepository.deleteAll();

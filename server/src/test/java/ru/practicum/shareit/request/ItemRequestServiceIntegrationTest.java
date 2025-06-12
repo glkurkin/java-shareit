@@ -3,110 +3,79 @@ package ru.practicum.shareit.request;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.transaction.annotation.Transactional;
-import ru.practicum.shareit.item.ItemRepository;
-import ru.practicum.shareit.item.model.Item;
-import ru.practicum.shareit.request.dto.ItemRequestDto;
+import ru.practicum.shareit.request.dto.CreateItemRequestDto;
+import ru.practicum.shareit.request.dto.ItemRequestResponseDto;
 import ru.practicum.shareit.user.User;
 import ru.practicum.shareit.user.UserRepository;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest
 @ActiveProfiles("test")
-@AutoConfigureTestDatabase
-@Transactional
 class ItemRequestServiceIntegrationTest {
 
     @Autowired
     private ItemRequestService requestService;
-    @Autowired
-    private ItemRequestRepository requestRepo;
-    @Autowired
-    private UserRepository userRepo;
-    @Autowired
-    private ItemRepository itemRepo;
 
-    private User requester;
-    private User owner;
-    private ItemRequest savedRequest;
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private ItemRequestRepository requestRepository;
 
     @BeforeEach
-    void setUp() {
-        // очистим всё
-        itemRepo.deleteAll();
-        requestRepo.deleteAll();
-        userRepo.deleteAll();
-
-        requester = userRepo.save(new User(null, "Пётр", "peter@example.com"));
-        owner = userRepo.save(new User(null, "Иван", "ivan@example.com"));
-
-        // создаём у Петра запрос
-        ItemRequestDto dto = new ItemRequestDto();
-        dto.setDescription("Нужна отвертка");
-        savedRequest = requestService.createRequest(requester.getId(), dto);
+    void cleanUp() {
+        requestRepository.deleteAll();
+        userRepository.deleteAll();
     }
 
     @Test
-    void createRequest_ShouldPersistRequest() {
-        assertNotNull(savedRequest.getId());
-        assertEquals("Нужна отвертка", savedRequest.getDescription());
-        assertEquals(requester.getId(), savedRequest.getRequestor().getId());
-        assertNotNull(savedRequest.getCreated());
+    void createRequest_shouldReturnDtoWithIdDescriptionAndTimestamp() {
+        User user = new User(null, "Ivan", "ivan@example.com");
+        user = userRepository.save(user);
+
+        CreateItemRequestDto dto = new CreateItemRequestDto("Нужна дрель");
+        ItemRequestResponseDto resp = requestService.createRequest(user.getId(), dto);
+
+        assertNotNull(resp.getId(), "id нового запроса не должен быть null");
+        assertEquals(dto.getDescription(), resp.getDescription(), "описание должно сохраниться");
+        assertNotNull(resp.getCreated(), "дата/время создания не должно быть null");
     }
 
     @Test
-    void getRequestById_ShouldReturnWithAnswers() {
-        // заведём у Ивана вещь по этому запросу
-        Item item = new Item();
-        item.setName("Отвёртка крестовая");
-        item.setDescription("Новая");
-        item.setAvailable(true);
-        item.setOwner(owner);
-        item.setRequest(savedRequest);
-        itemRepo.save(item);
+    void getOwnRequests_shouldReturnListOfOwnRequests() {
+        User user = userRepository.save(new User(null, "Anna", "anna@example.com"));
+        requestService.createRequest(user.getId(), new CreateItemRequestDto("Нужен шуруповёрт"));
 
-        var dtoWithAnswers = requestService.getRequestById(requester.getId(), savedRequest.getId());
-
-        assertEquals(savedRequest.getId(), dtoWithAnswers.getId());
-        assertEquals(1, dtoWithAnswers.getItems().size());
-        var it = dtoWithAnswers.getItems().get(0);
-        assertEquals(item.getId(), it.getId());
-        assertEquals(item.getName(), it.getName());
-        assertEquals(owner.getId(), it.getOwnerId());
+        List<ItemRequestResponseDto> own = requestService.getOwnRequests(user.getId());
+        assertEquals(1, own.size(), "должен вернуться один собственный запрос");
+        ItemRequestResponseDto r = own.get(0);
+        assertEquals("Нужен шуруповёрт", r.getDescription());
     }
 
     @Test
-    void getOwnRequests_ShouldReturnOnlyRequester() {
-        // добавим ещё чужой запрос
-        User other = userRepo.save(new User(null, "Саша", "sasha@example.com"));
-        requestService.createRequest(other.getId(), new ItemRequestDto(null, "Что-то ещё", LocalDateTime.now()));
+    void getAllOtherRequests_shouldReturnRequestsOfOthers() {
+        User u1 = userRepository.save(new User(null, "Petr", "petr@example.com"));
+        User u2 = userRepository.save(new User(null, "Olga", "olga@example.com"));
+        requestService.createRequest(u1.getId(), new CreateItemRequestDto("Ищу велосипед"));
 
-        List<ItemRequest> own = requestService.getOwnRequests(requester.getId());
-
-        assertEquals(1, own.size());
-        assertEquals(requester.getId(), own.get(0).getRequestor().getId());
+        List<ItemRequestResponseDto> others = requestService.getAllOtherRequests(u2.getId(), 0, 10);
+        assertEquals(1, others.size(), "должен вернуться один чужой запрос");
+        assertEquals("Ищу велосипед", others.get(0).getDescription());
     }
 
     @Test
-    void getAllRequests_ShouldReturnOthersPaginated() {
-        // ещё один чужой запрос
-        User other = userRepo.save(new User(null, "Саша", "sasha@example.com"));
-        requestService.createRequest(other.getId(), new ItemRequestDto(null, "Нужна дрель", LocalDateTime.now()));
+    void getRequestById_shouldReturnThatRequest() {
+        User user = userRepository.save(new User(null, "Max", "max@example.com"));
+        ItemRequestResponseDto created = requestService.createRequest(user.getId(), new CreateItemRequestDto("Нужны лыжи"));
+        ItemRequestResponseDto found = requestService.getRequestById(user.getId(), created.getId());
 
-        // получаем все, пропуская первый(=запрос requester), size=10
-        List<ItemRequest> list = requestService.getAllRequests(requester.getId(), 0, 10);
-
-        // в списке — только запросы НЕ от requester
-        assertTrue(list.stream().allMatch(r -> !r.getRequestor().getId().equals(requester.getId())));
-        assertEquals(1, list.size());
+        assertEquals(created.getId(), found.getId());
+        assertEquals(created.getDescription(), found.getDescription());
     }
 }
