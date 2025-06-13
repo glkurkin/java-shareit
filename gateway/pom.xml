@@ -52,10 +52,6 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <version>3.3.2</version>
-                <configuration>
-                    <mainClass>ru.practicum.shareit.gateway.ShareItGatewayApplication</mainClass>
-                </configuration>
                 <executions>
                     <execution>
                         <goals>
