@@ -6,7 +6,8 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - server
+      server:
+        condition: service_healthy
     environment:
       - SHAREIT_SERVER_URL=http://server:9090
 
@@ -17,7 +18,14 @@ services:
     ports:
       - "9090:9090"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    restart: on-failure
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9090/actuator/health" ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
     environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/shareit
       - SPRING_DATASOURCE_USERNAME=shareit
