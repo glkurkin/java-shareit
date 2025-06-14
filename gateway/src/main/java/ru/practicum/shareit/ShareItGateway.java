@@ -1,9 +1,9 @@
-package ru.practicum.shareit.gateway;
+package ru.practicum.shareit;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-@SpringBootApplication(scanBasePackages = "ru.practicum.shareit")
+@SpringBootApplication
 public class ShareItGateway {
     public static void main(String[] args) {
         SpringApplication.run(ShareItGateway.class, args);
