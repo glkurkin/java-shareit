@@ -67,6 +67,7 @@
                 </configuration>
                 <executions>
                     <execution>
+                        <phase>package</phase>
                         <goals>
                             <goal>repackage</goal>
                         </goals>
