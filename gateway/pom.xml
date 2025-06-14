@@ -54,6 +54,7 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
                     <classifier>exec</classifier>
+                    <mainClass>ru.practicum.shareit.ShareItGateway</mainClass>
                 </configuration>
                 <executions>
                     <execution>
