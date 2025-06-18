@@ -7,6 +7,7 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.shareit.ShareItApp;
 import ru.practicum.shareit.error.BadRequestException;
 import ru.practicum.shareit.error.NotFoundException;
 import ru.practicum.shareit.item.dto.ItemRequestDto;
@@ -26,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@SpringBootTest
+@SpringBootTest(classes = ShareItApp.class)
 @ActiveProfiles("test")
 @AutoConfigureTestDatabase
 @Transactional

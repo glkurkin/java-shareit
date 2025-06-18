@@ -7,6 +7,7 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.shareit.ShareItApp;
 import ru.practicum.shareit.booking.dto.BookingDto;
 import ru.practicum.shareit.booking.dto.BookingRequestDto;
 import ru.practicum.shareit.error.ForbiddenException;
@@ -21,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-@SpringBootTest
+@SpringBootTest(classes = ShareItApp.class)
 @ActiveProfiles("test")
 @AutoConfigureTestDatabase
 @Transactional
@@ -105,7 +106,6 @@ class BookingServiceIntegrationTest {
         assertThrows(ForbiddenException.class,
                 () -> bookingService.getById(stranger.getId(), created.getId()));
     }
-
 
     @Test
     void getAllOwnByBooker_InvalidPageParameters_Throws() {
