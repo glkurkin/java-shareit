@@ -8,32 +8,28 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.Setter;
-import ru.practicum.shareit.user.User;
+import ru.practicum.shareit.user.model.User;
 
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "item_requests")
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@RequiredArgsConstructor
+@Entity
+@Table(name = "requests")
 public class ItemRequest {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(nullable = false)
+    @Column(name = "request_id")
+    private Integer id;
+    @Column(name = "description")
     private String description;
-
-    @Column(nullable = false)
-    private LocalDateTime created;
-
+    @JoinColumn(name = "requester")
     @ManyToOne
-    @JoinColumn(name = "requestor_id", nullable = false)
-    private User requestor;
+    private User requester;
+    @Column(name = "created")
+    private LocalDateTime created;
 }

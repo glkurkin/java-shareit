@@ -1,22 +1,20 @@
 package ru.practicum.shareit.booking.dto;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class BookingRequestDto {
-    @NotNull(message = "itemId must be provided")
-    private Long itemId;
-
-    @NotNull(message = "start must be provided")
+    @NotNull
+    private Integer itemId;
+    @NotNull
     private LocalDateTime start;
-
-    @NotNull(message = "end must be provided")
+    @NotNull
     private LocalDateTime end;
 }

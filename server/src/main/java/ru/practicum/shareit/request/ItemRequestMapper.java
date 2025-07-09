@@ -1,28 +1,29 @@
 package ru.practicum.shareit.request;
 
-import ru.practicum.shareit.item.model.Item;
-import ru.practicum.shareit.request.dto.ItemRequestResponseDto;
-import ru.practicum.shareit.request.dto.ResponseItemDto;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.request.dto.ItemRequestCreateDto;
+import ru.practicum.shareit.request.dto.ItemRequestDto;
+import ru.practicum.shareit.request.dto.ItemRequestWithItemsDto;
+import ru.practicum.shareit.user.model.User;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class ItemRequestMapper {
-    public static ItemRequestResponseDto toResponseDto(
-            ru.practicum.shareit.request.ItemRequest request,
-            List<Item> items) {
-        List<ResponseItemDto> itemDtos = items.stream()
-                .map(i -> new ResponseItemDto(
-                        i.getId(),
-                        i.getName(),
-                        i.getOwnerId()))
-                .collect(Collectors.toList());
+@Mapper(componentModel = "spring", uses = ItemRequestMapper.class)
+public interface ItemRequestMapper {
+    @Mapping(target = "requesterId", source = "requester.id")
+    ItemRequestDto toItemRequestDto(ItemRequest itemRequest);
 
-        return ItemRequestResponseDto.builder()
-                .id(request.getId())
-                .description(request.getDescription())
-                .created(request.getCreated())
-                .items(itemDtos)
-                .build();
+    @Mapping(target = "id", ignore = true)
+    ItemRequest toItemRequest(ItemRequestCreateDto itemRequestDto, User requester);
+
+    ItemRequestWithItemsDto toItemRequestWithItems(ItemRequest itemRequest, List<ItemDto> items);
+
+    default List<ItemRequestDto> toItemRequestDtoList(List<ItemRequest> itemRequests) {
+        return itemRequests.stream()
+                .map(this::toItemRequestDto)
+                .collect(Collectors.toList());
     }
 }
